@@ -1,0 +1,345 @@
+\documentclass[twoside,11pt]{article}
+
+\usepackage{blindtext}
+
+% Any additional packages needed should be included after jmlr2e.
+% Note that jmlr2e.sty includes epsfig, amssymb, natbib and graphicx,
+% and defines many common macros, such as 'proof' and 'example'.
+%
+% It also sets the bibliographystyle to plainnat; for more information on
+% natbib citation styles, see the natbib documentation, a copy of which
+% is archived at http://www.jmlr.org/format/natbib.pdf
+
+% Available options for package jmlr2e are:
+%
+%   - abbrvbib : use abbrvnat for the bibliography style
+%   - nohyperref : do not load the hyperref package
+%   - preprint : remove JMLR specific information from the template,
+%         useful for example for posting to preprint servers.
+%
+% Example of using the package with custom options:
+%
+% \usepackage[abbrvbib, nohyperref, preprint]{jmlr2e}
+
+\usepackage[nohyperref]{jmlr2e}
+%\usepackage[nohyperref, preprint]{jmlr2e}
+
+% Load hyperref with custom options; requires ``nohyperref'' option
+\usepackage[dvipsnames]{xcolor}
+\colorlet{siaminlinkcolor}{green!50!black}
+\colorlet{siamexlinkcolor}{red!50!black}
+\colorlet{siamreviewcolor}{black!50}
+\usepackage[colorlinks,pagebackref,bookmarksdepth=3]{hyperref}
+\hypersetup{allcolors=siaminlinkcolor,urlcolor=siamexlinkcolor}
+\renewcommand*{\backref}[1]{\ifx#1\relax \else Page #1 \fi}
+\renewcommand*{\backrefalt}[4]{%
+	\ifcase #1 \footnotesize{(not cited)}%
+	\or        \footnotesize{(cited on p.~#2)}%
+	\else      \footnotesize{(cited on pp.~#2)}%
+	\fi
+}
+
+% Definitions of handy macros can go here
+
+\newcommand{\dataset}{{\cal D}}
+\newcommand{\fracpartial}[2]{\frac{\partial #1}{\partial  #2}}
+
+% Heading arguments are {volume}{year}{pages}{date submitted}{date published}{paper id}{author-full-names}
+
+\usepackage{lastpage}
+\jmlrheading{23}{2022}{1-\pageref{LastPage}}{1/21; Revised 5/22}{9/22}{21-0000}{Author One and Author Two}
+
+% Short headings should be running head and authors last names
+
+\ShortHeadings{Operator Learning in metric spaces: Application to inverse problem}{One and Two}
+\firstpageno{1}
+
+% Optional PDF information
+\ifpdf
+\hypersetup{
+	pdftitle={Sample JMLR Paper},
+	pdfauthor={A. One and A. Two}
+}
+\fi
+
+\begin{document}
+
+\title{Operator learning in metric spaces: Applications to Inverse Problems}
+
+\author{\name Author One \email one@stat.washington.edu \\
+       \addr Department of Statistics\\
+       University of Washington\\
+       Seattle, WA 98195-4322, USA
+       \AND
+       \name Author Two \email two@cs.berkeley.edu \\
+       \addr Division of Computer Science\\
+       University of California\\
+       Berkeley, CA 94720-1776, USA}
+
+\editor{My editor}
+
+\maketitle
+
+\begin{abstract}%   <- trailing '%' for backward compatibility of .sty file
+%\blindtext
+\end{abstract}
+
+\begin{keywords}
+  keyword one
+\end{keywords}
+
+\section{Problem Setup}
+Let:
+\begin{itemize}
+    \item \( x \) represent the system state, typically in a Banach or Hilbert space, i.e., \( x \in X \),
+    \item \( y \) represent observations, \( y \in Y \),
+    \item \( \mathcal{P}(x) \) be the prior distribution of \( x \), where \( \mathcal{P}(x) \in \mathcal{M}(X) \), the space of probability measures on \( X \),
+    \item \( p(y \mid x) \) be the likelihood function,
+    \item \( \mathcal{P}(x \mid y) \) be the posterior distribution.
+\end{itemize}
+
+The posterior is obtained via Bayes' theorem:
+\[
+\mathcal{P}(x \mid y) = \frac{p(y \mid x) \mathcal{P}(x)}{p(y)}
+\]
+
+where \( p(y) \) is the evidence, ensuring proper normalization.
+
+If we aim to learn a mapping from priors to posteriors across different settings (e.g., different ensemble sizes), we define a neural operator:
+\[
+\mathcal{G}_\theta: \mathcal{M}(X) \to \mathcal{M}(X)
+\]
+where \( \mathcal{G}_\theta \) is a parameterized operator (e.g., a neural network) that approximates the Bayesian update.
+
+In an ensemble-based approach (e.g., Ensemble Kalman Inversion):
+\begin{itemize}
+    \item We approximate distributions with an ensemble \( \{ x_i \}_{i=1}^N \).
+    \item The operator \( \mathcal{G}_\theta \) learns to map an ensemble representing the prior to an ensemble representing the posterior.
+\end{itemize}
+
+
+
+\section{Background: Probability Metrics for Operator Learning}
+
+In learning operators on spaces of probability measures, we require tools to compare and process distributions in a mathematically rigorous and computationally meaningful way. Two such tools are the \emph{Wasserstein distance} from optimal transport theory and \emph{kernel mean embeddings} from reproducing kernel Hilbert space (RKHS) theory. Both frameworks allow us to represent and compare probability measures without committing to a fixed number of samples, enabling operator learning that is invariant to ensemble size.
+
+\subsection{Wasserstein Distance (Optimal Transport)}
+
+Let $(X, d)$ be a Polish metric space (i.e., a complete separable metric space), and let $\mathcal{P}_p(X)$ denote the set of Borel probability measures on $X$ with finite $p$-th moment. The $p$-Wasserstein distance between two measures $\mu, \nu \in \mathcal{P}_p(X)$ is defined as:
+\begin{equation}
+W_p(\mu, \nu) = \left( \inf_{\gamma \in \Pi(\mu, \nu)} \int_{X \times X} d(x, y)^p \, d\gamma(x, y) \right)^{1/p},
+\end{equation}
+where $\Pi(\mu, \nu)$ is the set of all couplings (transport plans) between $\mu$ and $\nu$, i.e., all probability measures on $X \times X$ with marginals $\mu$ and $\nu$ respectively.
+
+Intuitively, $W_p(\mu, \nu)$ measures the minimal "effort" required to move mass distributed according to $\mu$ into the configuration described by $\nu$. For example, if $\mu$ is a distribution centered at $x=0$ and $\nu$ is centered at $x=1$, the Wasserstein-1 distance is simply 1 when both are Dirac deltas (point masses).
+
+As a concrete example, consider the one-dimensional case where $\mu = \delta_0$ and $\nu = \delta_1$ (Dirac measures at 0 and 1, respectively). Then for any $p \ge 1$, we have:
+\[
+W_p(\mu, \nu) = |0 - 1| = 1.
+\]
+
+More generally, if $\mu$ and $\nu$ are empirical distributions formed by ensembles:
+\[
+\mu = \frac{1}{N} \sum_{i=1}^N \delta_{x_i}, \quad \nu = \frac{1}{M} \sum_{j=1}^M \delta_{y_j},
+\]
+then the Wasserstein distance becomes a finite-dimensional optimal transport problem that can be solved using linear programming or entropic regularization (e.g., Sinkhorn iterations).
+
+The Wasserstein distance is particularly suitable for learning on probability measures because it metrizes weak convergence under mild moment assumptions, respects geometry, and provides gradients suitable for optimization in machine learning.
+\section{Theory of RKHS and Kernel Regression}
+
+A reproducing kernel Hilbert space (RKHS) is a Hilbert space of functions associated with a positive definite kernel. A kernel \( K(x, y) \) is called a \emph{Mercer kernel} if it is symmetric and positive definite, i.e.,
+\[
+\int \int K(x, y) f(x) f(y) \, dx \, dy \geq 0
+\]
+for any square-integrable function \( f \). This is analogous to the definition of positive definiteness for matrices: \( x^\top A x \geq 0 \).
+
+\subsection{Function Construction in RKHS}
+
+Given a kernel \( K \), we define the function \( K_x(\cdot) := K(x, \cdot) \) by fixing the first argument. For example, for the Gaussian kernel:
+\[
+K(x, y) = \exp\left(-\frac{\|x - y\|^2}{\sigma^2}\right),
+\]
+the function \( K_x(\cdot) \) resembles a Gaussian bump centered at \( x \).
+
+We can construct functions in the RKHS via linear combinations of kernel evaluations:
+\[
+f(x) = \sum_{j=1}^k \alpha_j K(x_j, x).
+\]
+Define the set of all such functions as:
+\[
+\mathcal{H}_0 = \left\{ f : f(x) = \sum_{j=1}^k \alpha_j K(x_j, x) \right\}.
+\]
+
+For two such functions,
+\[
+f(x) = \sum_{j=1}^k \alpha_j K(x_j, x), \quad g(x) = \sum_{j=1}^m \beta_j K(y_j, x),
+\]
+we define the inner product as:
+\[
+\langle f, g \rangle_{\mathcal{H}_K} := \sum_{i=1}^k \sum_{j=1}^m \alpha_i \beta_j K(x_i, y_j).
+\]
+This inner product induces the norm:
+\[
+\|f\|_{\mathcal{H}_K} = \sqrt{\langle f, f \rangle_{\mathcal{H}_K}} = \sqrt{\sum_{j,k} \alpha_j \alpha_k K(x_j, x_k)} = \sqrt{\alpha^\top K \alpha}.
+\]
+
+\subsection{Reproducing Property}
+
+A crucial property of RKHS is the \emph{reproducing property}, which states:
+\[
+\langle f, K_x \rangle = f(x),
+\]
+for all \( f \in \mathcal{H}_K \). In particular,
+\[
+\langle K_x, K_y \rangle = K(x, y),
+\]
+which implies that \( K_x \) is the representer of the evaluation functional.
+
+\subsection{Feature Map and Mercer Expansion}
+
+Assuming \( \sup_{x,y} K(x,y) < \infty \), the kernel admits a Mercer decomposition:
+\[
+K(x, y) = \sum_{j=1}^\infty \lambda_j \psi_j(x) \psi_j(y),
+\]
+where \( \{ \psi_j \} \) are orthonormal eigenfunctions and \( \{ \lambda_j \} \) are the corresponding eigenvalues satisfying \( \sum_j \lambda_j < \infty \).
+
+We define the \emph{feature map}:
+\[
+\Phi(x) = \left( \sqrt{\lambda_1} \psi_1(x), \sqrt{\lambda_2} \psi_2(x), \ldots \right).
+\]
+
+A function in the RKHS can be expressed either in terms of kernels or in the eigenbasis:
+\[
+f(x) = \sum_{i=1}^k \alpha_i K(x_i, x) = \sum_{j=1}^\infty \beta_j \psi_j(x).
+\]
+Moreover, the inner product in this basis is given by:
+\[
+\langle f, g \rangle = \sum_{j=1}^\infty \frac{a_j b_j}{\lambda_j},
+\]
+where \( f = \sum_j a_j \psi_j \) and \( g = \sum_j b_j \psi_j \). This shows that small RKHS norm corresponds to smoothness of \( f \).
+
+\subsection{Representer Theorem}
+
+Let \( \ell \) be a loss function depending on samples \( (X_1, Y_1), \ldots, (X_n, Y_n) \) and on the values \( f(X_1), \ldots, f(X_n) \). Then the function minimizing a regularized objective:
+\[
+\hat{f} = \arg\min_f \left[ \ell(f(X_1), \ldots, f(X_n)) + g(\|f\|_{\mathcal{H}_K}^2) \right],
+\]
+for any increasing function \( g \), has the form:
+\[
+\hat{f}(x) = \sum_{i=1}^n \alpha_i K(x_i, x).
+\]
+
+\subsection{RKHS Regression}
+
+A classic example is kernel ridge regression. We define the estimator \( \hat{m} \) by minimizing the regularized risk:
+\[
+R(m) = \sum_{i=1}^n (Y_i - m(X_i))^2 + \lambda \|m\|_{\mathcal{H}_K}^2.
+\]
+By the representer theorem, the minimizer has the form:
+\[
+\hat{m}(x) = \sum_{i=1}^n \alpha_i K(X_i, x).
+\]
+Plugging this into the risk functional gives:
+\[
+R(\alpha) = \|Y - K\alpha\|^2 + \lambda \alpha^\top K \alpha,
+\]
+where \( K \in \mathbb{R}^{n \times n} \) is the Gram matrix with entries \( K_{ij} = K(X_i, X_j) \). The minimizer is:
+\[
+\hat{\alpha} = (K + \lambda I)^{-1} Y,
+\]
+and the predicted values are:
+\[
+\hat{Y} = K \hat{\alpha} = K(K + \lambda I)^{-1} Y = L Y,
+\]
+where \( L \) is the smoother matrix. The regularization parameter \( \lambda \) can be selected via cross-validation.
+
+
+\subsection{Kernel Mean Embeddings in RKHS}
+
+Another powerful tool for working with probability measures is the kernel mean embedding framework. Let $k: X \times X \to \mathbb{R}$ be a symmetric positive-definite kernel. The \emph{reproducing kernel Hilbert space (RKHS)} $\mathcal{H}_k$ associated with $k$ is a Hilbert space of functions $f: X \to \mathbb{R}$ such that:
+\begin{enumerate}
+  \item For every $x \in X$, the function $k(x, \cdot) \in \mathcal{H}_k$.
+  \item For all $f \in \mathcal{H}_k$ and $x \in X$, the \emph{reproducing property} holds:
+  \begin{equation}
+    f(x) = \langle f, k(x, \cdot) \rangle_{\mathcal{H}_k}.
+  \end{equation}
+\end{enumerate}
+
+The \emph{kernel mean embedding} of a measure $\mu \in \mathcal{P}(X)$ is defined as:
+\begin{equation}
+\mu_k := \int_X k(x, \cdot) \, d\mu(x) \in \mathcal{H}_k.
+\end{equation}
+
+The kernel mean embedding $\mu_k$ is an element of the RKHS that captures properties of the distribution $\mu$. If the kernel $k$ is \emph{characteristic}, then the mapping $\mu \mapsto \mu_k$ is injective, meaning that no information is lost.
+
+For empirical distributions, this becomes:
+\begin{equation}
+\mu_k \approx \frac{1}{N} \sum_{i=1}^N k(x_i, \cdot),
+\end{equation}
+where $\{x_i\}_{i=1}^N$ is a sample from $\mu$. This representation is independent of the ordering or size of the sample, and it lives in a fixed Hilbert space $\mathcal{H}_k$, enabling standard neural network layers to operate on probability distributions.
+
+
+
+\paragraph{Example: RKHS for linear kernel.}
+Let $X = \mathbb{R}^d$ and consider the linear kernel $k(x, y) = \langle x, y \rangle$. The associated RKHS $\mathcal{H}_k$ is the space of all linear functions $f(x) = \langle w, x \rangle$ for some $w \in \mathbb{R}^d$, equipped with the inner product $\langle f, g \rangle_{\mathcal{H}_k} = \langle w_f, w_g \rangle$.
+
+In this case, the kernel mean embedding of a distribution $\mu$ becomes:
+\[
+\mu_k = \int_X k(x, \cdot) \, d\mu(x) = \int_X \langle x, \cdot \rangle \, d\mu(x) = \left\langle \mathbb{E}_{x \sim \mu}[x], \cdot \right\rangle,
+\]
+which corresponds to the mean vector of the distribution. Thus, for the linear kernel, kernel mean embedding reduces to the expected value of the random variable.
+
+\paragraph{Example: RKHS for the Gaussian kernel.}
+Let $X = \mathbb{R}^d$ and consider the Gaussian (RBF) kernel:
+\[
+k(x, y) = \exp\left(-\frac{\|x - y\|^2}{2\sigma^2}\right).
+\]
+The associated RKHS $\mathcal{H}_k$ is an infinite-dimensional Hilbert space of smooth functions on $\mathbb{R}^d$. Every function $f \in \mathcal{H}_k$ has a representation of the form:
+\[
+f(x) = \sum_{i=1}^\infty \alpha_i \, k(x_i, x),
+\]
+where $\{x_i\}$ is a set of points in $X$, and the coefficients $\{\alpha_i\}$ satisfy a norm condition:
+\[
+\|f\|_{\mathcal{H}_k}^2 = \sum_{i,j} \alpha_i \alpha_j k(x_i, x_j) < \infty.
+\]
+
+This RKHS is rich enough to approximate any continuous function on a compact domain to arbitrary accuracy, due to the universal approximation property of the Gaussian kernel.
+
+The kernel mean embedding of a probability distribution $\mu$ is given by:
+\[
+\mu_k = \int_X k(x, \cdot) \, d\mu(x),
+\]
+which results in a smooth function in $\mathcal{H}_k$ that captures the ``shape'' of the distribution. For empirical measures:
+\[
+\mu_k \approx \frac{1}{N} \sum_{i=1}^N k(x_i, \cdot),
+\]
+this is simply a sum of smooth bumps centered at the sample points $\{x_i\}$.
+
+Because the Gaussian kernel is \emph{characteristic}, the map $\mu \mapsto \mu_k$ is injective, so all information about the distribution is preserved in its RKHS embedding.
+
+
+\textbf{Example.} Let $k(x, y) = \exp(-\|x - y\|^2 / (2\sigma^2))$ be the Gaussian kernel. Then each sample $x_i$ contributes a bump centered at $x_i$, and the embedding $\mu_k$ is a smooth function that approximates the density of $\mu$.
+
+Kernel mean embeddings allow the use of inner products, norms, and distances in $\mathcal{H}_k$ to compare distributions:
+\[
+\|\mu_k - \nu_k\|_{\mathcal{H}_k}^2 = \mathbb{E}_{x, x' \sim \mu}[k(x, x')] + \mathbb{E}_{y, y' \sim \nu}[k(y, y')] - 2 \mathbb{E}_{x \sim \mu, y \sim \nu}[k(x, y)].
+\]
+
+This is known as the \emph{Maximum Mean Discrepancy (MMD)}, a commonly used loss in distribution matching tasks such as GANs and domain adaptation.
+
+\subsection{Relevance to Operator Learning}
+
+Both Wasserstein distance and RKHS-based kernel mean embeddings provide ways to represent and compare probability measures in a mathematically principled manner. In operator learning, these tools allow one to:
+\begin{itemize}
+  \item Define neural operators that map from prior to posterior distributions: $\mathcal{G}_\theta: \mathcal{P}(X) \to \mathcal{P}(X)$.
+  \item Evaluate losses and train these operators in a way that is \emph{invariant to ensemble size} and \emph{respects the geometry of distributions}.
+  \item Use Wasserstein or MMD distances to compare predicted and true posterior distributions, facilitating learning from empirical samples.
+\end{itemize}
+
+
+
+
+
+\bibliography{sample}
+
+\end{document}

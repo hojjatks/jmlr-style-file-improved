@@ -1,0 +1,359 @@
+\documentclass[twoside,11pt]{article}
+
+\usepackage{blindtext}
+\usepackage{amsmath}
+\usepackage{amssymb}
+% Any additional packages needed should be included after jmlr2e.
+% Note that jmlr2e.sty includes epsfig, amssymb, natbib and graphicx,
+% and defines many common macros, such as 'proof' and 'example'.
+%
+% It also sets the bibliographystyle to plainnat; for more information on
+% natbib citation styles, see the natbib documentation, a copy of which
+% is archived at http://www.jmlr.org/format/natbib.pdf
+
+% Available options for package jmlr2e are:
+%
+%   - abbrvbib : use abbrvnat for the bibliography style
+%   - nohyperref : do not load the hyperref package
+%   - preprint : remove JMLR specific information from the template,
+%         useful for example for posting to preprint servers.
+%
+% Example of using the package with custom options:
+%
+% \usepackage[abbrvbib, nohyperref, preprint]{jmlr2e}
+
+\usepackage[nohyperref]{jmlr2e}
+%\usepackage[nohyperref, preprint]{jmlr2e}
+
+% Load hyperref with custom options; requires ``nohyperref'' option
+\usepackage[dvipsnames]{xcolor}
+\colorlet{siaminlinkcolor}{green!50!black}
+\colorlet{siamexlinkcolor}{red!50!black}
+\colorlet{siamreviewcolor}{black!50}
+\usepackage[colorlinks,pagebackref,bookmarksdepth=3]{hyperref}
+\hypersetup{allcolors=siaminlinkcolor,urlcolor=siamexlinkcolor}
+\renewcommand*{\backref}[1]{\ifx#1\relax \else Page #1 \fi}
+\renewcommand*{\backrefalt}[4]{%
+	\ifcase #1 \footnotesize{(not cited)}%
+	\or        \footnotesize{(cited on p.~#2)}%
+	\else      \footnotesize{(cited on pp.~#2)}%
+	\fi
+}
+
+% Definitions of handy macros can go here
+
+\newcommand{\dataset}{{\cal D}}
+\newcommand{\fracpartial}[2]{\frac{\partial #1}{\partial  #2}}
+
+% Heading arguments are {volume}{year}{pages}{date submitted}{date published}{paper id}{author-full-names}
+
+\usepackage{lastpage}
+\jmlrheading{23}{2022}{1-\pageref{LastPage}}{1/21; Revised 5/22}{9/22}{21-0000}{Author One and Author Two}
+
+% Short headings should be running head and authors last names
+
+\ShortHeadings{Operator Learning in metric spaces: Application to inverse problem}{authors}
+\firstpageno{1}
+
+% Optional PDF information
+\ifpdf
+\hypersetup{
+	pdftitle={Sample JMLR Paper},
+	pdfauthor={A. One and A. Two}
+}
+\fi
+
+\begin{document}
+
+\title{Operator learning in metric spaces: Applications to Inverse Problems}
+
+%\author{\name Author One \email one@stat.washington.edu \\
+%       \addr Department of Statistics\\
+%       University of Washington\\
+%       Seattle, WA 98195-4322, USA
+%       \AND
+%       \name Author Two \email two@cs.berkeley.edu \\
+%       \addr Division of Computer Science\\
+%       University of California\\
+%       Berkeley, CA 94720-1776, USA}
+
+%\editor{Nan}
+
+%\maketitle
+
+%\begin{abstract}%   <- trailing '%' for backward compatibility of .sty file
+%\blindtext
+% \end{abstract}
+
+%\begin{keywords}
+%  keyword one
+%\end{keywords}
+\textbf{Operator learning in metric spaces: Applications to Inverse Problems}
+
+\section{Problem Setup}
+
+Let \( u \in \mathcal{U} \) denote the system state, where \(\mathcal{U}\) is a Banach or Hilbert space, and let \( y \in \mathcal{Y} \) represent the observation.
+
+Suppose we observe \(\{(u_i, y_i)\}_{i=1}^N\), drawn i.i.d. from some unknown joint distribution \(\nu_{u,y}(u, y)\). In many practical settings, the prior \(\nu_u\) and likelihood \(\nu_{y|u}\) are not available in closed form but are only accessible through samples. An example is subsurface geophysics, where empirical samples may be available without assuming parametric forms like lognormal priors.
+
+The joint distribution \(\nu_{u,y}\) satisfies:
+\[
+\nu_{u,y}(u,y) = \nu_{y|u}(y|u) \nu_u(u) = \nu_{u|y}(u|y) \nu_y(y).
+\]
+
+We define an operator \(\mathsf{B}\) that maps the joint distribution \(\nu_{u,y}\) to the conditional distribution \(\nu_{u|y}\), evaluated at a fixed observation \(y^\dag\):
+\[
+\mathsf{B}(\nu_{u,y}; y^\dag, \theta) := \frac{\nu_{u,y}(u, y^\dag)}{\int \nu_{u,y}(u, y^\dag) \, du} = \nu_{u|y}(u \mid y^\dag).
+\]
+
+Our goal is to learn a map \(T(u, y; y^\dag, \theta)\) that pushes forward samples from \(\nu_{u,y}\) to approximate \(\nu_{u|y}(\cdot | y^\dag)\).
+
+\newpage
+
+
+
+
+
+\section*{Loss function}
+To learn \(\mathsf{B}\), we compare the learned conditional distribution \(\mathsf{B}(\nu_{u,y}; y^\dag, \theta)\) with the true posterior \(\nu_{u|y}(\cdot | y^\dag)\) using a suitable discrepancy metric. Two such metrics are the \textbf{Maximum Mean Discrepancy (MMD)} and the \textbf{Energy Distance}.
+
+
+
+\subsection*{Maximum Mean Discrepancy (MMD)}
+
+Let \(\rho\) and \(\rho'\) be probability measures on a common space \(\mathcal{X}\), and \(\mathcal{H}_k\) be an RKHS with kernel \(k\). Then:
+\[
+D_{\mathrm{MMD}}(\rho, \rho') := \left\| \mu_{\rho} - \mu_{\rho'} \right\|_{\mathcal{H}_k},
+\]
+where \(\mu_\rho := \mathbb{E}_{x \sim \rho} [k(x, \cdot)]\).
+
+The squared MMD has the form:
+\begin{equation}
+    D^2_{\mathrm{MMD}}(\rho, \varrho) := \mathbb{E}_{(u,u') \sim \rho \otimes \rho} \left[ c(u, u') \right]
+    + \mathbb{E}_{(v,v') \sim \varrho \otimes \varrho} \left[ c(v, v') \right]
+    - 2\mathbb{E}_{(u,v) \sim \rho \otimes \varrho} \left[ c(u, v) \right] .
+\end{equation}
+
+
+\subsection*{Energy Distance}
+The \textit{energy distance} $D_E$ between two probability density functions $\rho$ and $\varrho$ is defined by
+\[
+D^2_E(\rho, \varrho) := 2\, \mathbb{E}_{(u,v) \sim \rho \otimes \varrho}[\|u - v\|] - \mathbb{E}_{(u,u') \sim \rho^{\otimes 2}}[\|u - u'\|] - \mathbb{E}_{(v,v') \sim \varrho^{\otimes 2}}[\|v - v'\|].
+\]
+
+
+
+
+
+
+\subsection*{Empirical Estimation}
+
+
+A key property of the MMD and the energy distance is that they are amenable to ensemble approximation; they can be implemented without explicit formulae for either of $\rho$ or $\varrho$. For example, given independent samples $\{u_i\}_{i=1}^{N} \sim \rho$ and $\{v_i\}_{i=1}^{M} \sim \varrho$, we can estimate the MMD distance by
+\begin{equation}
+\begin{aligned}
+    \widehat{D}^2_{\mathrm{MMD}}(\rho, \varrho) = \frac{1}{N(N-1)} \sum_{i \ne j} c(u_i, u_j)
+    + \frac{1}{M(M-1)} \sum_{i \ne j} c(v_i, v_j)
+    - \frac{2}{NM} \sum_{i=1}^{N} \sum_{j=1}^{M} c(u_i, v_j).
+\end{aligned}
+\tag{12.9}
+\end{equation}
+
+Likewise, we can estimate the energy distance by
+\begin{equation}
+\begin{aligned}
+    \widehat{D}^2_E(\rho, \varrho) = \frac{2}{NM} \sum_{i=1}^{N} \sum_{j=1}^{M} |u_i - v_j|
+    - \frac{1}{N(N-1)} \sum_{i \ne j} |u_i - u_j|
+    - \frac{1}{M(M-1)} \sum_{i \ne j} |v_i - v_j|.
+\end{aligned}
+\tag{12.10}
+\end{equation}
+
+\subsection*{Example}
+
+
+
+
+
+
+
+Let
+\[
+\rho = \tfrac{1}{2} \delta_0 + \tfrac{1}{2} \delta_1, \quad 
+\varrho = \tfrac{1}{2} \delta_2 + \tfrac{1}{2} \delta_3.
+\]
+
+For \(X, X' \sim \rho\),
+\[
+\mathbb{E}[|X - X'|] = \tfrac{1}{2} \cdot 0 + \tfrac{1}{2} \cdot 1 = \tfrac{1}{2}.
+\]
+Similarly, \(\mathbb{E}[|Y - Y'|] = \tfrac{1}{2}\).
+
+For \(X \sim \rho, Y \sim \varrho\),
+\[
+\mathbb{E}[|X - Y|] = \tfrac{1}{4}(2 + 3 + 1 + 2) = 2.
+\]
+
+Energy distance:
+\[
+D_E^2(\rho, \varrho) = 2 \cdot 2 - \tfrac{1}{2} - \tfrac{1}{2} = 3.
+\]
+
+\[
+\boxed{D_E^2(\rho, \varrho) = 3}
+\]
+
+
+\textbf{Moment Condition.} The energy distance is well-defined (i.e., all expectations are finite) if both \(\rho\) and \(\varrho\) have finite first moments:
+\[
+\mathbb{E}_{X \sim \rho}[\|X\|] < \infty, \quad \mathbb{E}_{Y \sim \varrho}[\|Y\|] < \infty.
+\]
+
+\medskip
+
+\textbf{Metric Property.} Under the above condition, the energy distance defines a metric on the space of probability measures with finite first moments. That is, for all distributions \(\rho, \varrho, \eta\):
+\begin{itemize}
+    \item \(D_E(\rho, \varrho) \geq 0\)
+    \item \(D_E(\rho, \varrho) = 0 \iff \rho = \varrho\)
+    \item \(D_E(\rho, \varrho) = D_E(\varrho, \rho)\)
+    \item \(D_E(\rho, \eta) \leq D_E(\rho, \varrho) + D_E(\varrho, \eta)\)
+\end{itemize}
+
+
+
+\section*{Optimization Objective}
+
+
+In this problem, we are interested in minimizing the following loss:
+
+
+
+
+\begin{equation}
+    L(\theta)=\mathbb{E}^{y^\dag}[{D}^2_{E}(\mathsf{B}(\nu_{u,y};y^\dag,\theta),\nu_{u|y}(.,y^\dag))].
+\end{equation}
+The reason for taking expectation over $y^\dag$ is that the true posterior distribution is unknown, and this way, we can parameterize based on prior and joint distribution of input and outputs.
+
+
+
+Define:
+\[
+l(\theta; y^\dag) := {D}^2_E(\mathsf{B}(\nu_{u,y}; y^\dag, \theta), \nu_{u|y}(\cdot | y^\dag)).
+\]
+
+We can express this loss as:
+\[
+l(\theta)= 2\mathbb{E}^{(u,u^\prime)\sim \mathsf{B}(.,\theta) \otimes \nu_{u|y^\dag}}[\|u-u^\prime\|]-\mathbb E^{(u,u^\prime)\sim \mathsf{B} (.,\theta) \otimes \mathsf{B}(.,\theta)} [\|u-u^\prime\|]-\text{const},
+\]
+where \(\bar{\nu} := \mathsf{B}(\nu_{u,y}; y^\dag, \theta)\).
+
+
+
+\subsection*{Empirical Approximation}
+We use samples \(\{(u^{(i)}, y^{(i)})\}_{i=1}^N\) from \(\nu_{u,y}\) to define the empirical loss. Let:
+\[
+\Tilde{\nu}_{u|y^\dag}(u|y^\dag) \approx \frac{1}{N} \sum_{i=1}^N \delta_{T(u^{(i)}, y^{(i)}; y^\dag, \theta)}.
+\]
+
+\[
+\nu_{u,y}(u', y^\dag) \approx \frac{1}{N} \sum_{j=1}^N \delta_{(u^{(j)}, y^{(j)})}, \quad \nu_y(y^\dag) \approx \frac{1}{N} \sum_{k=1}^N \delta_{y^{(k)}}.
+\]
+
+
+
+
+We write \(L(\theta)\) as:
+\begin{align*}
+    L(\theta) &= 2 \iiint \|u - u'\| \, \Tilde{\nu}_{u|y}(u|y^\dag) \, \nu_{u'|y}(u'|y^\dag) \, \nu_y(y^\dag) \, du \, du' \, dy^\dag \\
+    &\quad - \iiint \|u - u'\| \, \Tilde{\nu}_{u|y^\dag}(u|y^\dag) \, \Tilde{\nu}_{u'|y^\dag}(u'|y^\dag) \, \nu_y(y^\dag) \, du \, du' \, dy^\dag.
+\end{align*}
+
+Using the identity \(\nu_{u|y^\dag}(u'|y^\dag) \nu_y(y^\dag) = \nu_{u,y}(u', y^\dag)\), this can be rewritten as:
+\begin{align*}
+    L(\theta) &= 2 \iiint \|u - u'\| \, \Tilde{\nu}_{u|y^\dag}(u|y^\dag) \, \nu_{u',y}(u', y^\dag) \, du \, du' \, dy^\dag \\
+    &\quad - \iiint \|u - u'\| \, \Tilde{\nu}_{u|y^\dag}(u|y^\dag) \, \Tilde{\nu}_{u'|y^\dag}(u'|y^\dag) \, \nu_y(y^\dag) \, du \, du' \, dy^\dag.
+\end{align*}
+
+
+The empirical loss becomes:
+\[
+\begin{aligned}
+L(\theta) &= \frac{2}{N^2} \sum_{i,j} \left\| T(u^{(i)}, y^{(i)}; y^{(j)}, \theta) - u^{(j)} \right\| \\
+&\quad - \frac{1}{N^2(N-1)} \sum_{k=1}^N \sum_{i \ne j} \left\| T(u^{(i)}, y^{(i)}; y^{(k)}, \theta) - T(u^{(j)}, y^{(j)}; y^{(k)}, \theta) \right\|.
+\end{aligned}
+\]
+
+The first term enforces accuracy in matching the true conditional distribution, while the second encourages sufficient spread in the learned conditional, promoting realistic variability.
+
+
+%Then we can rewrite $L$ to be:
+%\begin{align}
+%    L=&\frac{2}{N^2}\sum_{i=1}^{N}\sum_{j=1}^N|T(u^{(i)},y^{(i)},y^{(j)},\theta)-u^{(j)}|-\\
+%    & \frac{1}{N^3}\sum_{i=1}^{N} \sum_{j=1}^{N} \sum_{k=1}^{N} |T(u^{(i)},y^{(i)},y^{(k)},\theta)-T(u^{(j)},y^{(j)},y^{(k)},\theta)|
+%\end{align}
+
+%The second term in the loss function ensures there is enough variance in the output; given the same $y^{k}$, we encourage $T$ to generate far output for $T$. Also, I think the prefactor of the second term should be $\frac{1}{N^2(N-1)}$ because given $y^{(k)}$, we should not include the same samples at $i$ and $j$. 
+
+\newpage
+\section{Experiment 1}
+
+In this experiment, we consider the one-dimensional case where \( u, y \in \mathbb{R} \), and the forward model is defined as
+\[
+    y = u^2 + \eta,
+\]
+where \(\eta\) represents observational noise.
+
+We assume the prior distribution of \(u\) is standard normal:
+\[
+    \rho(u) = \frac{1}{\sqrt{2\pi}} \exp\left(-\frac{u^2}{2}\right),
+\]
+and the noise \(\eta\) is also normally distributed:
+\[
+    \nu(\eta) = \frac{1}{\sqrt{2\pi}} \exp\left(-\frac{\eta^2}{2}\right).
+\]
+
+In this case, the posterior distribution can be written explicitly:
+\[
+    \mathbb{P}(u \mid y) = \frac{\nu(y - u^2) \rho(u)}{Z(y)} 
+    = \frac{\exp\left(-\frac{(y - u^2)^2}{2} - \frac{u^2}{2} \right)}{Z(y)},
+\]
+where the normalization constant \( Z(y) \) is given by
+\[
+    Z(y) = \int_{-\infty}^{\infty} \exp\left( -\frac{(y - u^2)^2}{2} - \frac{u^2}{2} \right) \, du.
+\]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\bibliography{sample}
+
+\end{document}
